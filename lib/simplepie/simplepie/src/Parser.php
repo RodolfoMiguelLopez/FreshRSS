@@ -169,12 +169,23 @@ class Parser implements RegistryAware
             if (\PHP_VERSION_ID < 80000) {
                 xml_parser_free($xml);
             }
-            return $return;
+            if ($return) {
+                return true;
+            }
+            // Fallback for feeds that break expat (>10MB "No memory"): retry libxml XMLReader + LIBXML_PARSEHUGE
+            $this->namespace = [''];
+            $this->element = [''];
+            $this->xml_base = [''];
+            $this->xml_base_explicit = [false];
+            $this->xml_lang = [''];
+            $this->data = [];
+            $this->datas = [[]];
+            $this->current_xhtml_construct = -1;
         }
 
         libxml_clear_errors();
         $xml = new \XMLReader();
-        $xml->xml($data);
+        $xml->xml($data, null, LIBXML_PARSEHUGE);
         while (@$xml->read()) {
             switch ($xml->nodeType) {
                 case \XMLReader::END_ELEMENT:
